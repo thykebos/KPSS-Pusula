@@ -17,16 +17,6 @@ class KariyerKapisiScraper(AnchorListScraper):
     default_kpss = True
 
 
-class YerelYonetimlerScraper(AnchorListScraper):
-    """yerelyonetimler.csb.gov.tr — robots.txt bu adresin otomatik okunmasını yasaklıyorsa
-    bot adresi kendiliğinden atlar (http_client.Fetcher)."""
-    key = "yerelyonetimler"
-    name = "Yerel Yönetimler (ÇŞB)"
-    list_urls = ("https://yerelyonetimler.csb.gov.tr/",)
-    default_institution = "Yerel Yönetim"
-    default_kpss = True
-
-
 class KamuIlanScraper(AnchorListScraper):
     """KPSS'siz alımlar."""
     key = "kamuilan"

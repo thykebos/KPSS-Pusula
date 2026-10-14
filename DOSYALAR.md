@@ -154,9 +154,11 @@ Durum etiketleri: ✅ yazıldı · ⏳ sıradaki adımlarda yazılacak
 | `scraper/text_utils.py` | ✅ | Türkçe metinden tarih, son başvuru, eğitim seviyesi, KPSS kodu, kadro sayısı, il çıkarma. |
 | `scraper/scrapers/base.py` | ✅ | İlan modeli, "ilan mı?" süzgeci, KPSS şartı tespiti, genel bağlantı toplama sınıfı. |
 | `scraper/scrapers/pgm_adalet.py` | ✅ | pgm.adalet.gov.tr (duyuru bağlantı yapısı gözlemlenerek yazıldı). |
-| `scraper/scrapers/sources.py` | ✅ | Kariyer Kapısı, Yerel Yönetimler, Kamu İlan (KPSS'siz), İŞKUR (KPSS'siz). **Gerçek HTML doğrulanamadı; `--dry-run` ile kontrol edilmeli.** |
+| `scraper/scrapers/yerelyonetimler.py` | ✅ | Yerel Yönetimler: gerçek sayfaya göre yazıldı (yalnızca "Duyurular" kartları; başlıktan il/kurum/unvan çıkarır, iptal ilanlarını almaz). |
+| `scraper/scrapers/sources.py` | ✅ | Kariyer Kapısı, Kamu İlan (KPSS'siz), İŞKUR (KPSS'siz). **Gerçek HTML görülmedi; `--discover` ile ayarlanacak.** |
+| `.github/workflows/scraper.yml` | ✅ | GitHub Actions: botu her saat başı çalıştırır (Secrets: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`). |
 | `scraper/database.py` | ✅ | Yalnızca yeni ilanları ekler (var olana dokunmaz). |
-| `scraper/tests/` | ✅ | 26 birim testi (`python -m unittest discover -s tests -t .`). |
+| `scraper/tests/` | ✅ | 30 birim testi (`python -m unittest discover -s tests -t .`). |
 
 ## 9) Sonraki adımlar
 

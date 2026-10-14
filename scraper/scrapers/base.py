@@ -5,7 +5,7 @@ import hashlib
 import logging
 import re
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Iterable
 from urllib.parse import urljoin
 
@@ -14,7 +14,7 @@ from bs4 import BeautifulSoup
 from http_client import Fetcher, RobotsDisallowed
 from text_utils import (
     TR_TZ, clean, extract_city, extract_codes, extract_levels, extract_positions,
-    find_application_end, find_dates, fold_tr,
+    find_application_end, find_dates, fold_tr, strip_deadline,
 )
 
 logger = logging.getLogger("scraper")
@@ -64,20 +64,24 @@ class Listing:
 # ---------------------------------------------------------------------------
 # Süzgeçler
 # ---------------------------------------------------------------------------
-_HIRING = ("alim", "alinacak", "alinmasi", "personel", "isci", "kadro", "memur", "sozlesmeli",
-           "ilan", "atama", "istihdam", "eleman", "gorevli")
+# Güçlü işaretler: başlıkta bunlardan biri varsa ilan kabul edilir.
+_STRONG = ("alim", "alinacak", "alinmasi", "istihdam", "atanmak uzere")
+# Zayıf işaret: "ilan" kelimesi yalnızca bir kadro/personel kelimesiyle birlikte kabul edilir.
+_WEAK_NEEDS = ("personel", "isci", "memur", "sozlesmeli", "kadro", "eleman", "gorevli")
 _NOISE = ("sonuc", "listesi", "yer ve tarih", "sinav yeri", "mulakat", "test ilan", "sistem test",
+          "iptal", "giris belgesi", "kesin kabul", "yedek", "ertelen", "sinav takvimi", "yerlestirme",
           "iletisim", "hakkimizda", "gizlilik", "cerez", "kvkk", "anasayfa", "arsivi", "site haritasi")
 
 
 def is_hiring_title(title: str) -> bool:
-    """Başlık bir personel alım ilanına benziyor mu? (sonuç/liste/menü bağlantıları elenir)"""
+    """Başlık güncel bir personel alım ilanına benziyor mu?
+    Haber, sonuç, liste, iptal, sınav yeri vb. duyurular ve menü bağlantıları elenir."""
     t = fold_tr(title)
-    if len(t) < 12:
+    if len(t) < 12 or any(n in t for n in _NOISE):
         return False
-    if any(n in t for n in _NOISE):
-        return False
-    return any(h in t for h in _HIRING)
+    if any(h in t for h in _STRONG):
+        return True
+    return "ilan" in t and any(w in t for w in _WEAK_NEEDS)
 
 
 _NO_KPSS = re.compile(r"kpss\s*['’]?\s*(siz|sart(i|siz)?\s*(aranmaz|yok)|gerekmez|aranmamaktadir)")
@@ -122,6 +126,8 @@ class BaseScraper:
     default_institution: str = ""
     default_kpss: bool = True     # kaynakta KPSS şartı varsayılanı
     max_details: int = 40         # tek taramada en fazla kaç detay sayfası açılır
+    max_age_days: int = 45        # bitiş tarihi bilinmeyen ilan, yayınlanalı bu kadar günden eskiyse atlanır
+    allow_undated: bool = False   # yayın/bitiş tarihi hiç bilinmeyen ilan alınsın mı (eski ilan riski)
     needs_js: bool = False        # True: sayfa JavaScript ile oluşuyor, doğrudan tarayıcıyla aç
     js_fallback: bool = True      # statik HTML'de ilan bulunamazsa tarayıcıyla bir kez daha dene
 
@@ -139,8 +145,9 @@ class BaseScraper:
         return False
 
     # -- ortak akış ---------------------------------------------------------
-    def scrape(self, known_ids: Iterable[str] = ()) -> list[Listing]:
+    def scrape(self, known_ids: Iterable[str] = (), now: datetime | None = None) -> list[Listing]:
         known = set(known_ids)
+        now = now or datetime.now(TR_TZ)
         items: dict[str, Listing] = {}
         for url in self.list_urls:
             try:
@@ -159,9 +166,11 @@ class BaseScraper:
             for it in found:
                 items.setdefault(it.external_id, it)
 
+        # En yeni ilanlar önce: detay sayfası kotası yeni ilanlara harcansın.
+        ordered = sorted(items.values(), key=lambda i: i.published_at or datetime.min.replace(tzinfo=TR_TZ), reverse=True)
         if self.wants_details():
             opened = 0
-            for it in items.values():
+            for it in ordered:
                 if it.external_id in known or opened >= self.max_details:
                     continue
                 try:
@@ -172,11 +181,20 @@ class BaseScraper:
                 except Exception as e:  # noqa: BLE001
                     logger.warning("%s: detay alınamadı (%s): %s", self.name, it.url, e)
 
-        now = datetime.now(TR_TZ)
-        fresh = [i for i in items.values() if not (i.application_end and i.application_end < now)]
-        if len(fresh) != len(items):
-            logger.info("%s: %d süresi dolmuş ilan atlandı.", self.name, len(items) - len(fresh))
+        fresh = [i for i in ordered if self._is_current(i, now)]
+        dropped = len(ordered) - len(fresh)
+        if dropped:
+            logger.info("%s: %d eski/süresi dolmuş/tarihsiz ilan atlandı.", self.name, dropped)
         return fresh
+
+
+    def _is_current(self, it: Listing, now: datetime) -> bool:
+        """Güncel mi? Bitiş tarihi varsa geçmemiş olmalı; yoksa yayın tarihi max_age_days içinde olmalı."""
+        if it.application_end:
+            return it.application_end >= now
+        if it.published_at:
+            return now - it.published_at <= timedelta(days=self.max_age_days)
+        return self.allow_undated
 
 
 class AnchorListScraper(BaseScraper):
@@ -231,5 +249,6 @@ class AnchorListScraper(BaseScraper):
             qualification_codes=extract_codes(both),
             positions_count=extract_positions(both),
             application_end=find_application_end(context),
+            published_at=(find_dates(strip_deadline(context)) or [None])[0],
             kpss_required=detect_kpss(both, self.default_kpss),
         )

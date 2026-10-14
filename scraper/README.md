@@ -5,7 +5,7 @@ Kamu personel alım ilanlarını tarar ve Supabase `appointments` tablosuna **ya
 | Kaynak anahtarı | Site | KPSS şartı |
 |---|---|---|
 | `kariyerkapisi` | kariyerkapisi.cbiko.gov.tr | varsayılan evet |
-| `yerelyonetimler` | yerelyonetimler.csb.gov.tr | varsayılan evet |
+| `yerelyonetimler` | yerelyonetimler.csb.gov.tr/duyurular | evet |
 | `pgm_adalet` | pgm.adalet.gov.tr (duyurular) | varsayılan evet |
 | `kamuilan` | kamuilan.sbb.gov.tr | varsayılan hayır |
 | `iskur` | iskur.gov.tr (kurum dışı kamu işçi alımı) | varsayılan hayır |
@@ -22,6 +22,14 @@ python -m unittest discover -s tests -t .   # testler
 ```
 `.env.example` dosyasını `.env` olarak kopyala: `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (service_role).
 > ⚠️ `service_role` anahtarı yalnızca bu botta kullanılır; Flutter uygulamasına ve `env.json`'a asla konmaz.
+
+## Yalnızca güncel atama ilanları
+Bot haber, sınav sonucu, giriş belgesi, iptal ve menü bağlantılarını almaz; başlıkta alım/atama ifadesi arar
+(`scrapers/base.py` → `is_hiring_title`). Ayrıca **güncellik** denetimi yapar: son başvuru tarihi geçmiş ilan alınmaz;
+bitiş tarihi bilinmiyorsa yayın tarihi 45 günden eskiyse alınmaz; hiç tarihi olmayan ilan alınmaz (eski ilanın yeni gibi görünmemesi için).
+- `yerelyonetimler`: gerçek sayfa yapısına göre yazıldı (yalnızca "Duyurular" kartları; haberler ve menü yok). Başlıktan il, kurum ve unvan çıkarılır.
+- `pgm_adalet`: duyuru bağlantı yapısına göre yazıldı; tarih bağlantının sonundaki damgadan alınır.
+- `kariyerkapisi`, `kamuilan`, `iskur`: sayfa yapısı henüz görülmedi; genel yöntemle çalışır. İlk çalıştırmada `--discover` çıktısıyla bunlara da özel ayar yapılacak.
 
 ## JavaScript ile oluşan siteler (Playwright)
 Bazı siteler (ör. İŞKUR) ilan listesini sayfa açıldıktan sonra JavaScript ile yükler; düz HTTP isteği boş döner.

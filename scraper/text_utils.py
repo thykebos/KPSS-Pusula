@@ -14,6 +14,24 @@ def fold_tr(text: str | None) -> str:
     return (text or "").translate(_FOLD).lower()
 
 
+def tr_lower(text: str) -> str:
+    return text.replace("İ", "i").replace("I", "ı").lower()
+
+
+def tr_title(text: str | None) -> str:
+    """"ZABITA MEMURU ( Tekniker )" -> "Zabıta Memuru (Tekniker)" (Türkçe i/ı kurallarıyla)."""
+    out = []
+    for n, w in enumerate(clean(text).split(" ")):
+        low = tr_lower(w)
+        if n and low in ("ve", "ile"):
+            out.append(low)
+            continue
+        first = {"i": "İ", "ı": "I"}.get(low[:1], low[:1].upper())
+        out.append(first + low[1:])
+    t = " ".join(out)
+    return re.sub(r"\(\s+", "(", re.sub(r"\s+\)", ")", t))
+
+
 def clean(text: str | None) -> str:
     """Fazla boşlukları tek boşluğa indirir."""
     return re.sub(r"\s+", " ", text or "").strip()
@@ -63,6 +81,11 @@ def find_dates(text: str, ref: datetime | None = None) -> list[datetime]:
 _DEADLINE = re.compile(
     r"son\s*basvuru(?:\s*tarihi)?\s*[:\-]?\s*(?P<d>.{0,40})", re.DOTALL
 )
+
+
+def strip_deadline(text: str) -> str:
+    """"Son başvuru tarihi: 20 Ekim" gibi ifadeleri siler (kalan tarihler yayın tarihi adayıdır)."""
+    return re.sub(r"son\s*ba[sş]vuru(?:\s*tarihi)?\s*[:\-]?[^.;\n]{0,40}", " ", text, flags=re.I)
 
 
 def find_application_end(text: str, ref: datetime | None = None) -> datetime | None:
