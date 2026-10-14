@@ -1,0 +1,51 @@
+name: İlan Botu
+
+on:
+  # Her saat başı otomatik çalış
+  schedule:
+    - cron: "0 * * * *"
+
+  # GitHub arayüzünden elle de başlatılabilsin
+  workflow_dispatch:
+    inputs:
+      source:
+        description: "Kaynak (boş bırakırsan hepsi)"
+        required: false
+        default: "all"
+
+jobs:
+  scrape:
+    name: İlanları Tara
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Kodu çek
+        uses: actions/checkout@v4
+
+      - name: Python kur
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: scraper/requirements.txt
+
+      - name: Bağımlılıkları kur
+        working-directory: scraper
+        run: pip install -r requirements.txt
+
+      - name: Playwright kur (JavaScript'li siteler için)
+        working-directory: scraper
+        run: |
+          pip install -r requirements-js.txt
+          playwright install chromium --with-deps
+
+      - name: İlanları tara ve Supabase'e yaz
+        working-directory: scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          SOURCE="${{ github.event.inputs.source }}"
+          SOURCE="${SOURCE:-all}"
+          python3 run.py --source "$SOURCE"

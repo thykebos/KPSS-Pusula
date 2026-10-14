@@ -1,0 +1,25 @@
+# Gizli anahtarlar: ASLA paylaşma / commit'leme
+env.json
+
+# Scraper gizli anahtarları ve geçici dosyalar
+scraper/.env
+scraper/debug/
+scraper/.venv/
+
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+.flutter-plugins
+.flutter-plugins-dependencies
+*.iml
+.idea/
+.DS_Store
+
+# Platform üretimi
+android/.gradle/
+android/local.properties
+ios/Pods/
+macos/Pods/

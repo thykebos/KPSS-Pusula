@@ -1,0 +1,32 @@
+name: kpss_pusula
+description: KPSS Pusula - KPSS soru çözüm ve atama takip uygulaması.
+publish_to: "none"
+version: 0.1.0+1
+
+environment:
+  sdk: ^3.5.0
+
+# Sürümler başlangıç noktasıdır. İlk kurulumdan sonra `flutter pub upgrade --major-versions` ile güncelleyin.
+# purchases_flutter (RevenueCat) yalnızca Android/iOS'ta çalışır; kod diğer platformlarda
+# onu hiç çağırmaz (bkz. features/subscription). Firebase (bildirim) henüz EKLENMEDİ.
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  flutter_riverpod: ^2.6.1
+  go_router: ^14.6.2
+  supabase_flutter: ^2.8.0
+  shared_preferences: ^2.3.3
+  # Alt sınır bilerek gevşek: en güncel sürüm alınır. Derleme hatası çıkarsa
+  # yalnızca lib/features/subscription/data/revenuecat_service.dart etkilenir.
+  purchases_flutter: ">=8.0.0"
+  intl: any
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
