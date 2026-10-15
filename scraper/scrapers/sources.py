@@ -12,7 +12,7 @@ from .base import AnchorListScraper
 class KariyerKapisiScraper(AnchorListScraper):
     key = "kariyerkapisi"
     name = "Kariyer Kapısı"
-    list_urls = ("https://kariyerkapisi.cbiko.gov.tr/",)
+    list_urls = ("https://kariyerkapisi.gov.tr/",)
     default_institution = "Cumhurbaşkanlığı Kariyer Kapısı"
     default_kpss = True
 
