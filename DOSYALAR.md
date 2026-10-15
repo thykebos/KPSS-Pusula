@@ -29,6 +29,8 @@ Durum etiketleri: ✅ yazıldı · ⏳ sıradaki adımlarda yazılacak
 | `supabase/functions/revenuecat-webhook/map_event.ts` | ✅ | Olay → abonelik durumu mantığı (iptal edince erişim dönem sonuna kadar sürer, iade hemen bitirir, ödeme sorunu ek süre sayılır, sırasız olay koruması). |
 | `supabase/functions/revenuecat-webhook/map_event.test.ts` | ✅ | Bu mantığın 15 birim testi (bu ortamda çalıştırıldı, 15/15 geçti). |
 | `supabase/functions/revenuecat-webhook/README.md` | ✅ | Webhook'u dağıtma ve RevenueCat'e bağlama adımları. |
+| `supabase/migrations/0006_purge_stale.sql` | ✅ | `purge_stale_appointments()`: süresi geçmiş/çok eski ilanları siler (takip edilenlere dokunmaz); yalnızca bot çağırabilir. |
+| `supabase/maintenance/reset_bot_appointments.sql` | ✅ | Bir kerelik: botun yazdığı tüm ilanları siler (yanlış/eski ilan temizliği için). |
 | `supabase/functions/notify-new-appointment/index.ts` | ✅ | Yeni ilan eklenince Premium kullanıcılara FCM push bildirimi gönderir. |
 | `supabase/functions/notify-new-appointment/README.md` | ✅ | Firebase kurulum, secret ayarı ve webhook bağlama adımları. |
 

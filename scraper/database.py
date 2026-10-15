@@ -43,3 +43,14 @@ class Database:
                    .execute())
             inserted += len(res.data or [])
         return inserted
+
+    def purge_stale(self) -> int:
+        """Süresi geçmiş / çok eski ilanları siler (takip edilenlere dokunmaz). Silinen sayısını döndürür.
+        0006_purge_stale.sql uygulanmamışsa uyarı verip 0 döndürür."""
+        try:
+            res = self._client.rpc("purge_stale_appointments", {}).execute()
+            return int(res.data or 0)
+        except Exception as e:  # noqa: BLE001 - temizlik başarısız olsa da tarama sonucu geçerlidir
+            logger.warning("Eski ilan temizliği yapılamadı (0006_purge_stale.sql çalıştırıldı mı?): %s", e)
+            return 0
+

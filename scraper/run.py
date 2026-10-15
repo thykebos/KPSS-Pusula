@@ -47,6 +47,13 @@ def run_once(keys: list[str], db, fetcher: Fetcher) -> None:
             logger.exception("%s: veritabanına yazılamadı", scraper.name)
 
 
+def purge(db) -> None:
+    if db is not None:
+        n = db.purge_stale()
+        if n:
+            logger.info("%d eski/süresi geçmiş ilan silindi.", n)
+
+
 def main() -> int:
     load_dotenv()
     p = argparse.ArgumentParser(description="KPSS Pusula ilan botu")
@@ -83,6 +90,7 @@ def main() -> int:
     try:
         while True:
             run_once(keys, db, fetcher)
+            purge(db)
             if not args.daemon:
                 return 0
             logger.info("Sonraki tarama %d sn sonra.", args.interval)

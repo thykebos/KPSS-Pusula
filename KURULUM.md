@@ -86,9 +86,10 @@ flutter doctor
    | 3 | `supabase/migrations/0003_spaced_review.sql` | Yanlış soruların ertesi gün tekrarı (**yeni uygulama sürümü için şart**) |
    | 4 | `supabase/migrations/0004_appointment_rpcs.sql` | Atama Takip fonksiyonları (içindeki liste fonksiyonları 0005 ile değişir) |
    | 5 | `supabase/migrations/0005_appointments_v2.sql` | **Atama Takip "Sunucu hatası" düzeltmesi**, meslek takibi, KPSS'siz ilan ayrımı, yeni kaynaklar, sahte örnek ilanların silinmesi |
-   | 6 | `supabase/seed/sample_questions.sql` | 6 örnek soru (Matik'i denemek için) |
-   | 7 | `supabase/seed/sample_exams.sql` | Sınav tarihleri (ana ekran sayacı için) |
-   | 8 (isteğe bağlı) | `supabase/seed/sample_test_exam.sql` | ~20 gün sonrası test sınavı: geri sayım kartını görmek için |
+   | 6 | `supabase/migrations/0006_purge_stale.sql` | Botun eski/süresi geçmiş ilanları kendiliğinden silmesi için fonksiyon |
+   | 7 | `supabase/seed/sample_questions.sql` | 6 örnek soru (Matik'i denemek için) |
+   | 8 | `supabase/seed/sample_exams.sql` | Sınav tarihleri (ana ekran sayacı için) |
+   | 9 (isteğe bağlı) | `supabase/seed/sample_test_exam.sql` | ~20 gün sonrası test sınavı: geri sayım kartını görmek için |
 
    Sahte ilan dosyası (`sample_appointments.sql`) kaldırıldı; gerçek ilanlar `scraper/` botuyla gelir (aşağıda "İlan botu").
 
@@ -266,3 +267,10 @@ python run.py --daemon --interval 3600   # saatte bir sürekli tara
 Önce `--dry-run` çıktısını kontrol et. Hangi sitenin 0 ilan döndürdüğünü ya da yanlış satırlar getirdiğini bana yaz (gerekirse `debug/` klasöründeki ilgili HTML dosyasını da ilet); site yapısına göre ayar yapılır.
 
 Bir site boş dönerse `python run.py --source iskur --discover` çalıştırıp `debug/` klasörünü (özellikle `*.xhr.json` dosyalarını) bana ilet; sitenin gerçek veri adresine göre bot ayarlanır. Bot, sitelerin `robots.txt` kurallarına uyar; kapalı olan adresleri atlar.
+
+## Uygulamada eski/yanlış ilan görünüyorsa
+Bot yalnızca yeni ilan ekler; eski kurallarla eklenmiş satırlar kendiliğinden gitmez. Bir kerelik temizlik:
+1. Supabase SQL Editor'de `supabase/maintenance/reset_bot_appointments.sql` dosyasını çalıştır (botun yazdığı tüm ilanları siler).
+2. GitHub > Actions > İlan Botu > Run workflow (mode: run). Güncel ilanlar yeni kurallarla yeniden eklenir.
+Bundan sonra bot her taramada süresi geçmiş ilanları (son başvurusu 7 günden eski; tarihsizse 90 günden eski) kendisi siler. Takip edilen ilanlar silinmez.
+
