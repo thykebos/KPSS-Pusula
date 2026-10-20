@@ -9,6 +9,7 @@ import '../../domain/entities/appointment_filter.dart';
 import '../providers/appointment_providers.dart';
 import '../widgets/appointment_card.dart';
 import '../widgets/appointment_filter_bar.dart';
+import '../widgets/city_picker_sheet.dart';
 
 /// İlan listesi ekranı (Premium). Ücretsiz kullanıcıya Premium'a geçiş ekranı gösterilir.
 class AppointmentListScreen extends ConsumerStatefulWidget {
@@ -206,7 +207,7 @@ class _AppointmentListScreenState extends ConsumerState<AppointmentListScreen> {
   }
 }
 
-/// Liste üstündeki hızlı filtreler: KPSS'li / KPSS'siz ve "Mesleklerim".
+/// Liste üstündeki hızlı filtreler: şehir seçici, KPSS'li / KPSS'siz ve "Mesleklerim".
 class _QuickFilters extends ConsumerWidget {
   const _QuickFilters({required this.filter, required this.hasProfessions});
 
@@ -222,6 +223,21 @@ class _QuickFilters extends ConsumerWidget {
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         children: [
+          // Şehir seçici: dokununca il listesi açılır; seçiliyken çarpıya basınca filtre kalkar.
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: InputChip(
+              avatar: const Icon(Icons.location_on_outlined, size: 18),
+              label: Text(filter.city ?? 'Şehir'),
+              selected: filter.city != null,
+              onPressed: () async {
+                final picked = await showCityPicker(context, selected: filter.city);
+                if (picked == null) return; // seçim yapılmadan kapatıldı
+                notifier.setCity(picked.isEmpty ? null : picked);
+              },
+              onDeleted: filter.city == null ? null : () => notifier.setCity(null),
+            ),
+          ),
           for (final k in KpssFilter.values)
             Padding(
               padding: const EdgeInsets.only(right: 8),

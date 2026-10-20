@@ -15,6 +15,7 @@ import time
 
 from dotenv import load_dotenv
 
+from dedup import DuplicateIndex, drop_duplicates
 from http_client import Fetcher
 from scrapers import SOURCES
 
@@ -23,6 +24,15 @@ logger = logging.getLogger("run")
 
 
 def run_once(keys: list[str], db, fetcher: Fetcher) -> None:
+    # Tekrar önleme: veritabanındaki TÜM ilanların (hangi kaynaktan olursa olsun) imzaları. Her kaynağın
+    # kabul ettiği ilan da buraya eklenir; böylece aynı ilan iki kaynakta çıksa bile bir kez eklenir.
+    index = DuplicateIndex()
+    if db is not None:
+        try:
+            index.add_rows(db.known_rows())
+        except Exception:  # noqa: BLE001 - okunamazsa yalnızca (source, external_id) koruması kalır
+            logger.exception("Mevcut ilanlar okunamadı; içerik tabanlı tekrar kontrolü bu turda kapalı.")
+
     for key in keys:
         scraper = SOURCES[key](fetcher)
         try:
@@ -32,17 +42,23 @@ def run_once(keys: list[str], db, fetcher: Fetcher) -> None:
             logger.exception("%s taranırken hata", scraper.name)
             continue
 
+        fresh, dropped = drop_duplicates([l for l in listings if l.external_id not in known], index)
+        for item, existing in dropped:
+            logger.info("%s: tekrar ilan atlandı: %r (zaten var: %r)", scraper.name, item.title[:80], existing[:80])
+
         if db is None:  # --dry-run
-            print(f"\n=== {scraper.name} ({key}): {len(listings)} ilan ===")
-            for l in listings:
+            print(f"\n=== {scraper.name} ({key}): {len(fresh)} ilan"
+                  f"{f' (+{len(dropped)} tekrar atlandı)' if dropped else ''} ===")
+            for l in fresh:
                 end = l.application_end.strftime("%d.%m.%Y") if l.application_end else "-"
                 print(f"- {l.title[:90]} | {l.institution[:40]} | {l.city or '-'} | "
                       f"KPSS:{'evet' if l.kpss_required else 'hayır'} | son:{end}\n    {l.url}")
             continue
 
         try:
-            new = db.insert_new([l for l in listings if l.external_id not in known], key)
-            logger.info("%s: %d ilan bulundu, %d yeni eklendi.", scraper.name, len(listings), new)
+            new = db.insert_new(fresh, key)
+            logger.info("%s: %d ilan bulundu, %d yeni eklendi, %d tekrar atlandı.",
+                        scraper.name, len(listings), new, len(dropped))
         except Exception:  # noqa: BLE001
             logger.exception("%s: veritabanına yazılamadı", scraper.name)
 

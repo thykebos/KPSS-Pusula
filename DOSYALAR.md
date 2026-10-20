@@ -29,6 +29,7 @@ Durum etiketleri: ✅ yazıldı · ⏳ sıradaki adımlarda yazılacak
 | `supabase/functions/revenuecat-webhook/map_event.ts` | ✅ | Olay → abonelik durumu mantığı (iptal edince erişim dönem sonuna kadar sürer, iade hemen bitirir, ödeme sorunu ek süre sayılır, sırasız olay koruması). |
 | `supabase/functions/revenuecat-webhook/map_event.test.ts` | ✅ | Bu mantığın 15 birim testi (bu ortamda çalıştırıldı, 15/15 geçti). |
 | `supabase/functions/revenuecat-webhook/README.md` | ✅ | Webhook'u dağıtma ve RevenueCat'e bağlama adımları. |
+| `supabase/migrations/0007_new_sources.sql` | ✅ | `appointment_source` enum'una `ilan_gov` ve `sayistay` ekler. |
 | `supabase/migrations/0006_purge_stale.sql` | ✅ | `purge_stale_appointments()`: süresi geçmiş/çok eski ilanları siler (takip edilenlere dokunmaz); yalnızca bot çağırabilir. |
 | `supabase/maintenance/reset_bot_appointments.sql` | ✅ | Bir kerelik: botun yazdığı tüm ilanları siler (yanlış/eski ilan temizliği için). |
 | `supabase/functions/notify-new-appointment/index.ts` | ✅ | Yeni ilan eklenince Premium kullanıcılara FCM push bildirimi gönderir. |
@@ -155,6 +156,7 @@ Durum etiketleri: ✅ yazıldı · ⏳ sıradaki adımlarda yazılacak
 | `scraper/requirements-js.txt` | ✅ | Tarayıcı modu için isteğe bağlı bağımlılık (Playwright). |
 | `scraper/text_utils.py` | ✅ | Türkçe metinden tarih, son başvuru, eğitim seviyesi, KPSS kodu, kadro sayısı, il çıkarma. |
 | `scraper/scrapers/base.py` | ✅ | İlan modeli, "ilan mı?" süzgeci, KPSS şartı tespiti, genel bağlantı toplama sınıfı. |
+| `scraper/scrapers/rss.py` | ✅ | RSS okuyucu + Kariyer Kapısı (`kariyerkapisi.gov.tr/RSS?k=3`). |
 | `scraper/scrapers/pgm_adalet.py` | ✅ | pgm.adalet.gov.tr (duyuru bağlantı yapısı gözlemlenerek yazıldı). |
 | `scraper/scrapers/yerelyonetimler.py` | ✅ | Yerel Yönetimler: gerçek sayfaya göre yazıldı (yalnızca "Duyurular" kartları; başlıktan il/kurum/unvan çıkarır, iptal ilanlarını almaz). |
 | `scraper/scrapers/sources.py` | ✅ | Kariyer Kapısı, Kamu İlan (KPSS'siz), İŞKUR (KPSS'siz). **Gerçek HTML görülmedi; `--discover` ile ayarlanacak.** |

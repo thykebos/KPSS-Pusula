@@ -5,6 +5,8 @@ env.json
 scraper/.env
 scraper/debug/
 scraper/.venv/
+__pycache__/
+*.pyc
 
 # Flutter / Dart
 .dart_tool/

@@ -28,6 +28,19 @@ class Database:
                 return ids
             start += 1000
 
+    def known_rows(self) -> list[dict]:
+        """Tüm kaynaklardaki ilanların karşılaştırma alanları (dedup.py: içerik tabanlı tekrar önleme)."""
+        rows: list[dict] = []
+        start = 0
+        while True:
+            res = (self._client.table("appointments")
+                   .select("external_id,institution,title,application_end,url")
+                   .order("id").range(start, start + 999).execute())
+            rows.extend(res.data or [])
+            if len(res.data or []) < 1000:
+                return rows
+            start += 1000
+
     def insert_new(self, listings: Iterable[Listing], source: str) -> int:
         """Yalnızca yeni ilanları ekler (aynı source+external_id varsa dokunmaz). Eklenen sayısını döndürür.
 

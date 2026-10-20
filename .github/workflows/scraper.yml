@@ -9,7 +9,7 @@ on:
   workflow_dispatch:
     inputs:
       source:
-        description: "Kaynak: all, kariyerkapisi, yerelyonetimler, pgm_adalet, kamuilan, iskur"
+        description: "Kaynak: all, kariyerkapisi, yerelyonetimler, pgm_adalet, kamuilan, iskur, ilan_gov, sayistay"
         required: false
         default: "all"
       mode:

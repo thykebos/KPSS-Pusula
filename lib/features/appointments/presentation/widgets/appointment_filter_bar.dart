@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../domain/entities/appointment_filter.dart';
+import 'city_picker_sheet.dart';
 
 /// Filtre sayfası (bottom sheet).
 class AppointmentFilterSheet extends StatefulWidget {
@@ -30,6 +31,16 @@ class _AppointmentFilterSheetState extends State<AppointmentFilterSheet> {
     _deptCtrl = TextEditingController(text: widget.initial.department ?? '');
     _qualCtrl = TextEditingController(text: widget.initial.qualificationCode ?? '');
     _queryCtrl = TextEditingController(text: widget.initial.query ?? '');
+  }
+
+  /// Şehri serbest yazmak yerine listeden seçtirir (yazım hatası ve "Muş"/"Gümüşhane" karışıklığı olmasın).
+  Future<void> _pickCity() async {
+    final picked = await showCityPicker(
+      context,
+      selected: _cityCtrl.text.isEmpty ? null : _cityCtrl.text,
+    );
+    if (picked == null || !mounted) return; // seçim yapılmadan kapatıldı
+    setState(() => _cityCtrl.text = picked); // '' = Tüm şehirler
   }
 
   @override
@@ -71,11 +82,22 @@ class _AppointmentFilterSheetState extends State<AppointmentFilterSheet> {
           const SizedBox(height: 12),
           TextField(
             controller: _cityCtrl,
-            decoration: const InputDecoration(
+            readOnly: true,
+            showCursor: false,
+            enableInteractiveSelection: false,
+            onTap: _pickCity,
+            decoration: InputDecoration(
               labelText: 'Şehir',
-              hintText: 'Örn: Ankara',
-              prefixIcon: Icon(Icons.location_on),
-              border: OutlineInputBorder(),
+              hintText: 'Tüm şehirler',
+              prefixIcon: const Icon(Icons.location_on),
+              suffixIcon: _cityCtrl.text.isEmpty
+                  ? const Icon(Icons.arrow_drop_down)
+                  : IconButton(
+                      tooltip: 'Şehri temizle',
+                      icon: const Icon(Icons.clear),
+                      onPressed: () => setState(_cityCtrl.clear),
+                    ),
+              border: const OutlineInputBorder(),
             ),
           ),
           const SizedBox(height: 12),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/appointment_providers.dart';
 import '../../domain/entities/appointment.dart';
@@ -74,18 +75,30 @@ class _DetailContent extends StatelessWidget {
         ),
         if (app.url != null && app.url!.isNotEmpty) ...[
           const SizedBox(height: 8),
-          FilledButton.icon(
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: app.url!));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('İlan bağlantısı panoya kopyalandı.'),
-                  duration: Duration(seconds: 2),
-                ),
-              );
-            },
-            icon: const Icon(Icons.copy),
-            label: const Text('Bağlantıyı Kopyala'),
+          // Dar ekranda ikinci düğme alta geçer (Wrap), taşma olmaz.
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              FilledButton.icon(
+                onPressed: () => _openLink(context, app.url!),
+                icon: const Icon(Icons.open_in_new),
+                label: const Text('Bağlantıya Git'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: app.url!));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('İlan bağlantısı panoya kopyalandı.'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.copy),
+                label: const Text('Bağlantıyı Kopyala'),
+              ),
+            ],
           ),
         ],
         const SizedBox(height: 24),
@@ -165,10 +178,47 @@ class _DetailContent extends StatelessWidget {
     }
   }
 
+  /// İlan bağlantısını telefonun tarayıcısında açar. Yalnızca http/https açılır (veri bottan geliyor;
+  /// "javascript:", "tel:" gibi şemalar açılmaz). Şemasız adres ("www.x.gov.tr") https sayılır.
+  Future<void> _openLink(BuildContext context, String raw) async {
+    final messenger = ScaffoldMessenger.of(context);
+    const failMessage =
+        'Bağlantı açılamadı. Bağlantıyı kopyalayıp tarayıcıda açabilirsin.';
+    final uri = _parseWebUri(raw);
+    if (uri == null) {
+      messenger.showSnackBar(const SnackBar(content: Text(failMessage)));
+      return;
+    }
+    try {
+      final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+      if (!opened) {
+        messenger.showSnackBar(const SnackBar(content: Text(failMessage)));
+      }
+    } catch (_) {
+      messenger.showSnackBar(const SnackBar(content: Text(failMessage)));
+    }
+  }
+
+  Uri? _parseWebUri(String raw) {
+    var text = raw.trim();
+    if (text.isEmpty) return null;
+    if (!text.contains('://')) text = 'https://$text';
+    final uri = Uri.tryParse(text);
+    if (uri == null || uri.host.isEmpty) return null;
+    if (uri.scheme != 'http' && uri.scheme != 'https') return null;
+    return uri;
+  }
+
   String _sourceLabel(String source) {
     switch (source) {
       case 'kariyerkapisi':
         return 'Kariyer Kapısı';
+      case 'kariyerkapisi_isealim':
+        return 'Kariyer Kapısı (İş e-Alım)';
+      case 'iskur_esube':
+        return 'İŞKUR (e-Şube)';
+      case 'resmigazete':
+        return 'Resmî Gazete';
       case 'yerelyonetimler':
         return 'Yerel Yönetimler';
       case 'pgm_adalet':
@@ -177,6 +227,10 @@ class _DetailContent extends StatelessWidget {
         return 'İŞKUR';
       case 'kamuilan':
         return 'Kamu İlan';
+      case 'ilan_gov':
+        return 'ilan.gov.tr';
+      case 'sayistay':
+        return 'Sayıştay';
       case 'osym':
         return 'ÖSYM';
       default:

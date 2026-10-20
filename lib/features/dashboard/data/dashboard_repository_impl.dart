@@ -29,9 +29,16 @@ class DashboardRepositoryImpl implements DashboardRepository {
   @override
   Future<List<AppointmentSummary>> fetchLatestAppointments({int limit = 3}) {
     return _guard(() async {
+      // Yalnızca güncel ilanlar: son başvuru tarihi geçmemiş olanlar; tarihi bilinmeyenlerde yayın tarihi
+      // 45 günden eski olmayanlar. (Sunucudaki appointment_is_active ve bot kuralıyla aynı; bu sorgu
+      // tabloyu doğrudan okuduğu için süzgeç burada da uygulanır.)
+      final now = DateTime.now().toUtc();
+      final staleLimit = now.subtract(const Duration(days: 45));
       final rows = await _client
           .from('appointments')
           .select('id, title, institution, city, application_end')
+          .or('application_end.gte.${now.toIso8601String()},'
+              'and(application_end.is.null,published_at.gte.${staleLimit.toIso8601String()})')
           .order('published_at', ascending: false)
           .limit(limit);
       return rows

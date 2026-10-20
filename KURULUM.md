@@ -87,6 +87,7 @@ flutter doctor
    | 4 | `supabase/migrations/0004_appointment_rpcs.sql` | Atama Takip fonksiyonları (içindeki liste fonksiyonları 0005 ile değişir) |
    | 5 | `supabase/migrations/0005_appointments_v2.sql` | **Atama Takip "Sunucu hatası" düzeltmesi**, meslek takibi, KPSS'siz ilan ayrımı, yeni kaynaklar, sahte örnek ilanların silinmesi |
    | 6 | `supabase/migrations/0006_purge_stale.sql` | Botun eski/süresi geçmiş ilanları kendiliğinden silmesi için fonksiyon |
+   | 7 | `supabase/migrations/0007_new_sources.sql` | Yeni kaynaklar (`ilan_gov`, `sayistay`) — bot bunlardan önce çalıştırılmalı |
    | 7 | `supabase/seed/sample_questions.sql` | 6 örnek soru (Matik'i denemek için) |
    | 8 | `supabase/seed/sample_exams.sql` | Sınav tarihleri (ana ekran sayacı için) |
    | 9 (isteğe bağlı) | `supabase/seed/sample_test_exam.sql` | ~20 gün sonrası test sınavı: geri sayım kartını görmek için |

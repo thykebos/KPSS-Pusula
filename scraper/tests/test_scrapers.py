@@ -6,7 +6,8 @@ from http_client import RobotsDisallowed
 from scrapers import SOURCES
 from scrapers.base import detect_kpss, is_hiring_title
 from scrapers.pgm_adalet import PgmAdaletScraper
-from scrapers.sources import IskurScraper, KariyerKapisiScraper
+from scrapers.rss import KariyerKapisiScraper
+from scrapers.sources import IlanGovScraper, IskurScraper, SayistayScraper
 from scrapers.yerelyonetimler import YerelYonetimlerScraper, parse_title
 from text_utils import TR_TZ
 
@@ -134,19 +135,19 @@ class GenericTest(unittest.TestCase):
         return cls(FakeFetcher({url: fx("generic_list.html")})).scrape(now=NOW)
 
     def test_filters_nav_test_and_expired(self):
-        res = self.run_source(KariyerKapisiScraper)
+        res = self.run_source(SayistayScraper)
         titles = [r.title for r in res]
         self.assertEqual(titles, ["Bursa Büyükşehir Belediyesi 25 sürekli işçi alım ilanı"])
         r = res[0]
         self.assertEqual(r.city, "Bursa")
         self.assertEqual(r.positions_count, 25)
         self.assertEqual((r.application_end.month, r.application_end.day), (10, 20))
-        self.assertEqual(r.url, "https://kariyerkapisi.cbiko.gov.tr/ilan/101")
+        self.assertEqual(r.url, "https://www.sayistay.gov.tr/ilan/101")
         self.assertIn("Belediyesi", r.institution)
 
     def test_kpss_default_per_source(self):
         self.assertFalse(self.run_source(IskurScraper)[0].kpss_required)
-        self.assertTrue(self.run_source(KariyerKapisiScraper)[0].kpss_required)
+        self.assertTrue(self.run_source(SayistayScraper)[0].kpss_required)
 
     def test_robots_disallowed_is_skipped(self):
         url = YerelYonetimlerScraper.list_urls[0]
@@ -160,9 +161,10 @@ class GenericTest(unittest.TestCase):
                 return fx("generic_list.html") if render else "<html><body><div id='app'></div></body></html>"
 
         ff = Dual({})
-        res = KariyerKapisiScraper(ff).scrape(now=NOW)
+        res = SayistayScraper(ff).scrape(now=NOW)
         self.assertEqual(len(res), 1)
-        self.assertEqual([r for _, r in ff.calls], [False, True])
+        # Her liste adresi için önce statik, sonra tarayıcıyla deneme yapılır.
+        self.assertEqual([r for _, r in ff.calls], [False, True] * len(SayistayScraper.list_urls))
 
     def test_needs_js_source_renders_directly(self):
         class Dual(FakeFetcher):
@@ -178,7 +180,64 @@ class GenericTest(unittest.TestCase):
         self.assertEqual(IskurScraper(FakeFetcher({})).scrape(), [])
 
     def test_registry_matches_enum(self):
-        self.assertEqual(set(SOURCES), {"kariyerkapisi", "yerelyonetimler", "pgm_adalet", "kamuilan", "iskur"})
+        self.assertEqual(set(SOURCES), {"kariyerkapisi", "kariyerkapisi_isealim", "yerelyonetimler",
+                                        "pgm_adalet", "kamuilan", "iskur", "ilan_gov", "sayistay",
+                                        "iskur_esube", "resmigazete"})
+
+
+class KariyerKapisiRssTest(unittest.TestCase):
+    def scrape(self, now=NOW):
+        url = KariyerKapisiScraper.list_urls[0]
+        self.assertEqual(url, "https://kariyerkapisi.gov.tr/RSS?k=3")
+        return KariyerKapisiScraper(FakeFetcher({url: fx("kariyerkapisi_rss.xml")})).scrape(now=now)
+
+    def test_parses_fresh_items_only(self):
+        res = self.scrape()
+        # Ocak 2026 ilanı (45 günden eski) ve "sonuçları" duyurusu elenir.
+        self.assertEqual(len(res), 2)
+        titles = {r.title for r in res}
+        self.assertIn("2026 Yılı Açıktan İcra Müdür ve İcra Müdür Yardımcılığı Sınav İlanı", titles)
+
+    def test_real_item_fields(self):
+        r = next(x for x in self.scrape() if "İcra" in x.title)
+        self.assertEqual(r.external_id, "kk-f0ca8a29-559f-426a-ade5-5ed30651c618")
+        self.assertEqual(r.institution, "Adalet Bakanlığı")
+        self.assertEqual(r.url, "https://kariyerkapisi.gov.tr/IlanDetay?i=f0ca8a29-559f-426a-ade5-5ed30651c618")
+        self.assertEqual((r.published_at.year, r.published_at.month, r.published_at.day, r.published_at.hour),
+                         (2026, 10, 5, 8))
+        self.assertIn("Merkezi Yerleştirme (ÖSYM)", r.description)
+        self.assertTrue(r.kpss_required)
+
+    def test_rfc822_date_and_kpssiz(self):
+        r = next(x for x in self.scrape() if "Ankara" in x.institution)
+        self.assertEqual((r.published_at.month, r.published_at.day), (10, 12))
+        self.assertEqual(r.positions_count, 40)
+        self.assertFalse(r.kpss_required)
+
+    def test_old_items_dropped_later(self):
+        self.assertEqual(self.scrape(now=datetime(2026, 12, 30, tzinfo=TR_TZ)), [])
+
+    def test_bad_xml_does_not_crash(self):
+        url = KariyerKapisiScraper.list_urls[0]
+        self.assertEqual(KariyerKapisiScraper(FakeFetcher({url: "<html>not rss"})).scrape(now=NOW), [])
+
+
+class NewAnchorSourcesTest(unittest.TestCase):
+    def test_ilan_gov_trusts_category_but_drops_noise_and_old(self):
+        url = IlanGovScraper.list_urls[0]
+        res = IlanGovScraper(FakeFetcher({url: fx("ilan_gov_list.html")})).scrape(now=NOW)
+        self.assertEqual([r.title for r in res], ["Konya Büyükşehir Belediyesi 20 Zabıta Memuru Alımı"])
+        self.assertEqual(res[0].url, "https://www.ilan.gov.tr/ilan/1234567/konya-buyuksehir-belediyesi-zabita-memuru-alimi")
+        self.assertEqual(res[0].city, "Konya")
+
+    def test_ilan_gov_ignores_non_ilan_links(self):
+        url = IlanGovScraper.list_urls[0]
+        res = IlanGovScraper(FakeFetcher({url: fx("ilan_gov_list.html")})).scrape(now=NOW)
+        self.assertFalse(any("kategori" in r.url or "hakkimizda" in r.url for r in res))
+
+    def test_sayistay_defaults(self):
+        self.assertEqual(SayistayScraper.default_institution, "Sayıştay Başkanlığı")
+        self.assertTrue(SayistayScraper.default_kpss)
 
 
 if __name__ == "__main__":

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Biçim: kariyerkapisi.gov.tr/RSS?k=3 beslemesinin rss2json çıktısından (debug .xhr.json) modellendi.
+     1. öğe gerçek kayıttır; diğerleri test için uydurulmuştur. Ham RSS'in kesin biçimi doğrulanmadı. -->
+<rss version="2.0">
+  <channel>
+    <title>Kariyer Kapısı - Kamu İşe Alım</title>
+    <link>https://kariyerkapisi.gov.tr/</link>
+    <item>
+      <title>ADALET BAKANLIĞI - 2026 Yılı Açıktan İcra Müdür ve İcra Müdür Yardımcılığı Sınav İlanı</title>
+      <pubDate>2026-10-05 08:30:00</pubDate>
+      <link>https://kariyerkapisi.gov.tr/IlanDetay?i=f0ca8a29-559f-426a-ade5-5ed30651c618</link>
+      <guid>https://kariyerkapisi.gov.tr/IlanDetay?i=f0ca8a29-559f-426a-ade5-5ed30651c618</guid>
+      <category>Merkezi Yerleştirme (ÖSYM)</category>
+    </item>
+    <item>
+      <title>ANKARA ÜNİVERSİTESİ - 40 Sözleşmeli Personel Alım İlanı (KPSS'siz)</title>
+      <pubDate>Mon, 12 Oct 2026 10:00:00 +0300</pubDate>
+      <link>https://kariyerkapisi.gov.tr/IlanDetay?i=11111111-2222-3333-4444-555555555555</link>
+      <category>Üniversite</category>
+    </item>
+    <item>
+      <title>ESKİ BAKANLIK - 2026 Ocak Personel Alım İlanı</title>
+      <pubDate>2026-01-10 09:00:00</pubDate>
+      <link>https://kariyerkapisi.gov.tr/IlanDetay?i=99999999-2222-3333-4444-555555555555</link>
+    </item>
+    <item>
+      <title>SAĞLIK BAKANLIĞI - Sözleşmeli Sağlık Personeli Alımı Sözlü Sınav Sonuçları</title>
+      <pubDate>2026-10-13 09:00:00</pubDate>
+      <link>https://kariyerkapisi.gov.tr/IlanDetay?i=88888888-2222-3333-4444-555555555555</link>
+    </item>
+  </channel>
+</rss>

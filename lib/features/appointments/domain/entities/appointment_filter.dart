@@ -32,12 +32,15 @@ class AppointmentFilter {
   /// Yalnızca Ayarlar'da takip edilen mesleklerle eşleşen ilanlar.
   final bool onlyMyProfessions;
 
+  /// `city` verilirse şehir değişir; `clearCity: true` şehir filtresini kaldırır.
   AppointmentFilter copyWith({
     KpssFilter? kpss,
     bool? onlyMyProfessions,
+    String? city,
+    bool clearCity = false,
   }) {
     return AppointmentFilter(
-      city: city,
+      city: clearCity ? null : (city ?? this.city),
       department: department,
       qualificationCode: qualificationCode,
       query: query,

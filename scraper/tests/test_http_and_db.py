@@ -46,6 +46,51 @@ class FetcherTest(unittest.TestCase):
             Fetcher(delay=0, session=Session(Resp(403))).get("https://a.tr/x")
 
 
+class DeadSiteTest(unittest.TestCase):
+    """Ulaşılamayan site bir kez denenir; sonraki istekler beklemeden hata verir."""
+
+    class Down:
+        def __init__(self, exc):
+            self.headers, self.exc, self.urls = {}, exc, []
+
+        def get(self, url, timeout=None, stream=False):
+            self.urls.append(url)
+            raise self.exc
+
+    def test_timeout_on_robots_marks_site_dead(self):
+        import requests
+        s = self.Down(requests.Timeout("read timed out"))
+        f = Fetcher(delay=0, session=s)
+        for path in ("a", "b", "c"):
+            with self.assertRaises(requests.ConnectionError):
+                f.get(f"https://slow.gov.tr/{path}")
+        self.assertEqual(s.urls, ["https://slow.gov.tr/robots.txt"])  # sayfa için hiç istek atılmadı
+
+    def test_other_sites_unaffected(self):
+        import requests
+        s = Session(Resp(404))
+        f = Fetcher(delay=0, session=s)
+        f._dead.add("https://slow.gov.tr")
+        with self.assertRaises(requests.ConnectionError):
+            f.get("https://slow.gov.tr/x")
+        self.assertEqual(f.get("https://ok.gov.tr/x"), "<html></html>")
+
+    def test_ssl_error_is_not_retried(self):
+        import requests
+        calls = []
+
+        class Ssl(Session):
+            def get(self, url, timeout=None, stream=False):
+                calls.append(url)
+                if url.endswith("/robots.txt"):
+                    return Resp(404)
+                raise requests.exceptions.SSLError("CERTIFICATE_VERIFY_FAILED")
+
+        with self.assertRaises(requests.exceptions.SSLError):
+            Fetcher(delay=0, session=Ssl(None)).get("https://bad.gov.tr/x")
+        self.assertEqual(calls, ["https://bad.gov.tr/robots.txt", "https://bad.gov.tr/x"])
+
+
 class FakeTable:
     def __init__(self, store):
         self.store = store

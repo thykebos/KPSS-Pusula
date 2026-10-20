@@ -4,11 +4,13 @@ Kamu personel alım ilanlarını tarar ve Supabase `appointments` tablosuna **ya
 
 | Kaynak anahtarı | Site | KPSS şartı |
 |---|---|---|
-| `kariyerkapisi` | kariyerkapisi.cbiko.gov.tr | varsayılan evet |
+| `kariyerkapisi` | kariyerkapisi.gov.tr — resmi RSS beslemesi (`/RSS?k=3`, Kamu İşe Alım) | varsayılan evet |
 | `yerelyonetimler` | yerelyonetimler.csb.gov.tr/duyurular | evet |
 | `pgm_adalet` | pgm.adalet.gov.tr (duyurular) | varsayılan evet |
 | `kamuilan` | kamuilan.sbb.gov.tr | varsayılan hayır |
 | `iskur` | iskur.gov.tr (kurum dışı kamu işçi alımı) | varsayılan hayır |
+| `ilan_gov` | ilan.gov.tr — Personel Alımı ve İş İlanları kategorisi | varsayılan evet |
+| `sayistay` | sayistay.gov.tr/Duyuru | varsayılan evet |
 
 İlan metninde "KPSS'siz" / "KPSS şartı aranmaz" geçerse KPSS'siz, "KPSS" geçerse KPSS'li işaretlenir.
 
@@ -29,7 +31,9 @@ Bot haber, sınav sonucu, giriş belgesi, iptal ve menü bağlantılarını alma
 bitiş tarihi bilinmiyorsa yayın tarihi 45 günden eskiyse alınmaz; hiç tarihi olmayan ilan alınmaz (eski ilanın yeni gibi görünmemesi için).
 - `yerelyonetimler`: gerçek sayfa yapısına göre yazıldı (yalnızca "Duyurular" kartları; haberler ve menü yok). Başlıktan il, kurum ve unvan çıkarılır.
 - `pgm_adalet`: duyuru bağlantı yapısına göre yazıldı; tarih bağlantının sonundaki damgadan alınır.
-- `kariyerkapisi`, `kamuilan`, `iskur`: sayfa yapısı henüz görülmedi; genel yöntemle çalışır. İlk çalıştırmada `--discover` çıktısıyla bunlara da özel ayar yapılacak.
+- `kariyerkapisi`: sitenin resmi RSS beslemesinden okunur (`scrapers/rss.py`); besleme biçimi gerçek bir kayıttan modellendi.
+- `ilan_gov`, `sayistay`, `kamuilan`, `iskur`: sayfa yapısı henüz görülmedi; genel bağlantı toplama yöntemiyle çalışır. `--discover` çıktısıyla bunlara da özel ayar yapılacak.
+- Bilerek eklenmeyenler: `esube.iskur.gov.tr/Istihdam/AcikIsIlanAra.aspx` (form/postback ile çalışan, ağırlıklı özel sektör iş arama ekranı) ve Resmi Gazete ilan bölümü (PDF; ayrı bir PDF ayrıştırma işi).
 
 ## JavaScript ile oluşan siteler (Playwright)
 Bazı siteler (ör. İŞKUR) ilan listesini sayfa açıldıktan sonra JavaScript ile yükler; düz HTTP isteği boş döner.

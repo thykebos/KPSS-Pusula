@@ -33,6 +33,10 @@ class AppointmentFilterNotifier extends Notifier<AppointmentFilter> {
   void setKpss(KpssFilter kpss) => state = state.copyWith(kpss: kpss);
   void setOnlyMyProfessions(bool value) =>
       state = state.copyWith(onlyMyProfessions: value);
+
+  /// Şehir seç; null = şehir filtresini kaldır (tüm şehirler).
+  void setCity(String? city) =>
+      state = state.copyWith(city: city, clearCity: city == null);
   void clear() => state = const AppointmentFilter();
 }
 

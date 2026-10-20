@@ -21,7 +21,7 @@ from bs4 import BeautifulSoup
 from text_utils import (
     CITY_BY_FOLD, clean, extract_city, find_application_end, find_dates, fold_tr, tr_title,
 )
-from .base import BaseScraper, Listing, is_hiring_title
+from .base import BaseScraper, Listing, is_hiring_title, stable_id
 
 _ID = re.compile(r"-(\d{4,})$")
 
@@ -90,7 +90,8 @@ class YerelYonetimlerScraper(BaseScraper):
             if info["correction"]:
                 title += " (Düzeltme)"
             out.append(Listing(
-                external_id=f"yy-{idm.group(1)}" if idm else f"yy-{abs(hash(url))}",
+                # NOT: Python'un hash()'i her çalıştırmada farklıdır; kimlik kalıcı olmalı (sha1 tabanlı).
+                external_id=f"yy-{idm.group(1)}" if idm else f"yy-{stable_id(self.key, url)}",
                 title=title[:300],
                 institution=parts[0],
                 url=url,

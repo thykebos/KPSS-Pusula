@@ -21,7 +21,7 @@ create type subscription_status as enum (
 create type store_type as enum ('app_store', 'play_store', 'stripe', 'promotional');
 
 create type appointment_source as enum (
-  'kariyerkapisi',   -- kariyerkapisi.cbiko.gov.tr
+  'kariyerkapisi',   -- kariyerkapisi.gov.tr
   'yerelyonetimler', -- yerelyonetimler.csb.gov.tr
   'kamuilan',        -- kamuilan.sbb.gov.tr
   'osym',            -- ÖSYM

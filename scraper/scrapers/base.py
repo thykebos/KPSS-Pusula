@@ -73,11 +73,18 @@ _NOISE = ("sonuc", "listesi", "yer ve tarih", "sinav yeri", "mulakat", "test ila
           "iletisim", "hakkimizda", "gizlilik", "cerez", "kvkk", "anasayfa", "arsivi", "site haritasi")
 
 
+def is_noise_title(title: str) -> bool:
+    """Sonuç, liste, iptal, menü vb. başlık mı? (Zaten yalnızca alım ilanı içeren kaynaklarda
+    `is_hiring_title` yerine yalnızca bu süzgeç kullanılır.)"""
+    t = fold_tr(title)
+    return len(t) < 12 or any(n in t for n in _NOISE)
+
+
 def is_hiring_title(title: str) -> bool:
     """Başlık güncel bir personel alım ilanına benziyor mu?
     Haber, sonuç, liste, iptal, sınav yeri vb. duyurular ve menü bağlantıları elenir."""
     t = fold_tr(title)
-    if len(t) < 12 or any(n in t for n in _NOISE):
+    if is_noise_title(title):
         return False
     if any(h in t for h in _STRONG):
         return True
@@ -144,18 +151,44 @@ class BaseScraper:
     def wants_details(self) -> bool:
         return False
 
+    def follow(self, html: str, page_url: str) -> list[str]:
+        """Liste sayfasından ziyaret edilecek EK sayfalar (ör. günlük sayfadaki grup sayfaları)."""
+        return []
+
+    def fetch_detail(self, item: Listing) -> str:
+        """Detay içeriğini alır (varsayılan: sayfanın HTML'i). PDF gibi kaynaklar bunu değiştirir."""
+        return self.fetcher.get(item.url)
+
+    def keep(self, item: Listing) -> bool:
+        """Detay okunduktan sonra son süzgeç; False dönen ilan atılır (ör. içerik alım ilanı değil)."""
+        return True
+
     # -- ortak akış ---------------------------------------------------------
+    max_list_pages: int = 40      # follow() ile eklenen sayfalar dahil, tek taramada en fazla liste sayfası
+
     def scrape(self, known_ids: Iterable[str] = (), now: datetime | None = None) -> list[Listing]:
         known = set(known_ids)
         now = now or datetime.now(TR_TZ)
         items: dict[str, Listing] = {}
-        for url in self.list_urls:
+        queue = list(self.list_urls)
+        queued = set(queue)
+        pos = 0
+        while pos < len(queue):
+            url = queue[pos]
+            pos += 1
             try:
                 html = self.fetcher.get(url, render=self.needs_js)
                 found = self.parse_list(html, url)
-                if not found and self.js_fallback and not self.needs_js:
+                extra = self.follow(html, url)
+                if not found and not extra and self.js_fallback and not self.needs_js:
                     logger.info("%s: statik HTML'de ilan yok, JavaScript ile yeniden deneniyor.", self.name)
-                    found = self.parse_list(self.fetcher.get(url, render=True), url)
+                    html = self.fetcher.get(url, render=True)
+                    found = self.parse_list(html, url)
+                    extra = self.follow(html, url)
+                for nxt in extra:
+                    if nxt not in queued and len(queue) < self.max_list_pages:
+                        queued.add(nxt)
+                        queue.append(nxt)
             except RobotsDisallowed:
                 logger.warning("%s: %s robots.txt ile yasak; bu adres atlandı.", self.name, url)
                 continue
@@ -174,14 +207,15 @@ class BaseScraper:
                 if it.external_id in known or opened >= self.max_details:
                     continue
                 try:
-                    self.enrich(it, self.fetcher.get(it.url))
+                    self.enrich(it, self.fetch_detail(it))
                     opened += 1
                 except RobotsDisallowed:
                     continue
                 except Exception as e:  # noqa: BLE001
                     logger.warning("%s: detay alınamadı (%s): %s", self.name, it.url, e)
 
-        fresh = [i for i in ordered if self._is_current(i, now)]
+        # Zaten veritabanında olanlar yeniden değerlendirilmez; yenilere son süzgeç (keep) uygulanır.
+        fresh = [i for i in ordered if self._is_current(i, now) and (i.external_id in known or self.keep(i))]
         dropped = len(ordered) - len(fresh)
         if dropped:
             logger.info("%s: %d eski/süresi dolmuş/tarihsiz ilan atlandı.", self.name, dropped)
@@ -202,7 +236,14 @@ class AnchorListScraper(BaseScraper):
 
     Her `<a>` için başlık = bağlantı metni; tarih/şehir/kurum için bağlantının bulunduğu
     satır/kart metni (en fazla 3 üst eleman) bağlam olarak okunur.
+
+    Ayarlar (alt sınıfta):
+      link_pattern  : verilirse yalnızca href'i bu düzenli ifadeye uyan bağlantılar alınır.
+      trust_titles  : True ise liste zaten yalnızca alım ilanı içerir (ör. "personel alımı" kategorisi);
+                      başlıkta alım kelimesi aranmaz, yalnızca sonuç/iptal/menü gibi gürültü elenir.
     """
+    link_pattern: re.Pattern | None = None
+    trust_titles: bool = False
 
     def parse_list(self, html: str, page_url: str) -> list[Listing]:
         soup = BeautifulSoup(html, "lxml")
@@ -213,8 +254,11 @@ class AnchorListScraper(BaseScraper):
             href = a["href"].strip()
             if href.startswith(("#", "javascript:", "mailto:", "tel:")):
                 continue
+            if self.link_pattern and not self.link_pattern.search(href):
+                continue
             title = clean(a.get_text(" ")) or clean(a.get("title"))
-            if not is_hiring_title(title):
+            ok = (not is_noise_title(title)) if self.trust_titles else is_hiring_title(title)
+            if not ok:
                 continue
             out.append(self._listing(title, urljoin(page_url, href), self._context(a, title)))
         return out
